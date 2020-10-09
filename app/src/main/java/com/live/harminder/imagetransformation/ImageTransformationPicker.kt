@@ -18,6 +18,8 @@ import android.view.WindowManager
 import android.widget.TextView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.gun0912.tedpermission.PermissionListener
+import com.gun0912.tedpermission.TedPermission
 import com.theartofdev.edmodo.cropper.CropImage
 import com.theartofdev.edmodo.cropper.CropImageView
 import java.io.File
@@ -31,23 +33,86 @@ abstract class ImageTransformationPicker : BaseActivity() {
     var requestCodeCamera = 1231
     var imgPath = ""
 
+    var permissionlistener: PermissionListener? = null
+
+
     fun mImageTransformation(activity: Activity) {
         this.activity= activity
-        if (activity != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
-                    activity.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
-                    activity.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    mRequestPermissionForCameraGallery()
-                }else{
-                    uploadImage()
-                }
+        startTed()
+//        if (activity != null) {
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+//                if (activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
+//                    activity.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
+//                    activity.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
+//                ) {
+//                    mRequestPermissionForCameraGallery()
+//                }else{
+//                    uploadImage()
+//                }
+//
+//            } else {
+//                uploadImage()
+//            }
+//        }
+    }
 
-            } else {
-                uploadImage()
+    private fun startTed() {
+        permissionlistener = object : PermissionListener {
+          override  fun onPermissionGranted (){
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    if (activity!!.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED || activity!!.checkSelfPermission(
+                            Manifest.permission.READ_EXTERNAL_STORAGE
+                        ) != PackageManager.PERMISSION_GRANTED || activity!!.checkSelfPermission(
+                            Manifest.permission.CAMERA
+                        ) != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        mRequestPermissionForCameraGallery()
+                        //   return false;
+                    } else {
+                        uploadImage()
+                        //  return true;
+                    }
+                } else {
+                    uploadImage()
+                    // return true;
+                }
+            }
+
+            override fun onPermissionDenied(deniedPermissions: ArrayList<String>?) {
             }
         }
+        tedPermission()
+
+
+        /* permissionlistener = object : PermissionListener {
+            override fun onPermissionGranted() {
+                //Ask for permission
+                ImagePickers(mContext)
+            }
+
+            override fun onPermissionDenied(deniedPermissions: ArrayList<String>) {
+                Toast.makeText(this@SignupActivity, "Permission Denied\n$deniedPermissions", Toast.LENGTH_SHORT).show()
+            }
+        }*/
+    }
+
+    open fun tedPermission() {
+        TedPermission.with(activity)
+            .setPermissionListener(permissionlistener)
+            .setRationaleConfirmText("Permissions")
+            .setRationaleTitle("Permission required.")
+            .setRationaleMessage("We need this permission for image picker..")
+            .setDeniedTitle("Permission denied")
+            .setDeniedMessage(
+                "If you reject permission,you can not use image picker\n\nPlease turn on permissions at [Setting] > [Permission]"
+            )
+            .setGotoSettingButtonText("Settings")
+            .setPermissions(
+                Manifest.permission.CAMERA,
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            )
+            .check()
     }
 
     private fun uploadImage() {
